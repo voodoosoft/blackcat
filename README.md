@@ -4,8 +4,9 @@
 Blackcat was developed while working on the game [Biodrone Battle](http://www.biodronebattle.com).
 Requirements were as follows:
 * no external dependencies
+* no component scanning
 * no code generation, no byte code modification, no configuration files
-* simple to use and fast
+* no black magic, simple to use and fast
 
 It can do two things:
 * annotation based field injections
