@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
 
@@ -212,7 +213,7 @@ public class Injector {
 		int size = providerEntries.size();
 		for (int i = 0; i < size; i++) {
 			ProviderEntry provKey = providerEntries.get(i);
-			if (type.equals(provKey.getType()) && nullSafeEquals(name, provKey.getName())) {
+			if (type.equals(provKey.getType()) && Objects.equals(name, provKey.getName())) {
 				throw new RuntimeException("duplicate provider for type [" + type + "] named [" + name + "]");
 			}
 		}
@@ -308,7 +309,7 @@ public class Injector {
 		else {
 			for (int i = 0; i < size; i++) {
 				ProviderEntry provKey = providerEntries.get(i);
-				if (type.isAssignableFrom(provKey.getType()) && nullSafeEquals(name, provKey.getName())) {
+				if (type.isAssignableFrom(provKey.getType()) && Objects.equals(name, provKey.getName())) {
 					return provKey.getProvider();
 				}
 			}
@@ -323,18 +324,6 @@ public class Injector {
 		ComponentEntry componentEntry = componentEntries.get(entryLookup);
 
 		return componentEntry;
-	}
-
-	private boolean nullSafeEquals(String s1, String s2) {
-		if ((s1 == null) && (s2 == null)) {
-			return true;
-		}
-
-		if ((s1 == null) || (s2 == null)) {
-			return false;
-		}
-
-		return s1.equals(s2);
 	}
 
 	private Map<ComponentEntry,ComponentEntry> componentEntries;
