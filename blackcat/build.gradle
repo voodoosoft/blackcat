@@ -1,0 +1,31 @@
+apply plugin: 'java'
+
+group = 'de.voodoosoft.blackcat'
+version = '1.0'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    testCompile 'junit:junit:4.12'
+}
+
+jar {
+    archiveName = rootProject.name + ".jar"
+    manifest {
+        def date = new Date()
+        attributes 'Implementation-Version': version,
+                   'Build-Date': date.format('yyyyMMdd'),
+                   'Build-Time': date.format('HHmmss')
+    }
+}
+
+task copyJar(type: Copy, dependsOn: jar) {
+    from jar
+    into "./"
+}
+
+jar.finalizedBy copyJar
