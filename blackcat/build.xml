@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="blackcat" basedir="." default="release">
+	<dirname property="rootdir" file="${ant.file.blackcat}"/>
+	<property name="libdir" value="${rootdir}/../blackcat/lib"/>
+	<property name="bindir" value="${rootdir}/ant-bin"/> 
+	<property name="classpath" value=""/>
+
+	<target name="clean">
+		<mkdir dir="${bindir}"/>
+		<delete includeemptydirs="true" >
+			<fileset dir="${rootdir}" includes="blackcat.jar"/>
+			<fileset dir="${bindir}" includes="**/*"/>
+		</delete>
+	</target>
+
+	<target name="compile" depends="clean">
+		<javac destdir="${bindir}" classpath="${classpath}" target="1.8" source="1.8" debug="on" includeantruntime="false" encoding="UTF-8">
+			<src path="${rootdir}/src/main"/>
+		</javac>
+	</target>
+	
+	<target name="buildnumber">
+		<propertyfile file="${bindir}/blackcat.build">
+			<entry key="build.module" type="string" value="blackcat"/>
+			<entry key="build.number" type="int" default="001" operation="+" pattern="000"/>
+			<entry key="build.date" type="date" value="now" pattern="yyyyMMdd"/>
+			<entry key="build.time" type="date" value="now" pattern="HHmmss"/>
+		</propertyfile>
+	</target>
+	
+	<target name="blackcat-jar" depends="compile, buildnumber">
+		<jar destfile="${rootdir}/blackcat.jar" basedir="${bindir}" />
+	</target>
+		
+	<target name="release" depends="blackcat-jar"/>
+	
+</project>
