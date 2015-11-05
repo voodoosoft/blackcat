@@ -18,6 +18,7 @@ public class TestLambda extends TestCase {
 
 		injector.addComponent(OneManBand.class, OneManBand::new);
 		injector.addComponent(Guitar.class, Guitar::new);
+		injector.addComponent(Body.class, Body::new);
 
 		OneManBand band = injector.getComponent(OneManBand.class);
 		assertNotNull(band);
@@ -49,6 +50,7 @@ public class TestLambda extends TestCase {
 		injector.addComponent(Jazzband.class, Jazzband::new);
 		injector.addComponent(Guitar.class, "LesPaul", () -> new Guitar("LesPaul"));
 		injector.addComponent(Guitar.class, "Stratocaster", () -> new Guitar("Stratocaster"));
+		injector.addComponent(Body.class, Body::new);
 
 		Jazzband band = injector.getComponent(Jazzband.class);
 		assertEquals("LesPaul", band.getLeadGuitar().getModel());
@@ -71,6 +73,7 @@ public class TestLambda extends TestCase {
 		injector.addComponent(Bluesband.class, Bluesband::new);
 		injector.addComponent(Guitar.class, "LesPaul", () -> new Guitar("LesPaul"));
 		injector.addComponent(Guitar.class, () -> new Guitar("Stratocaster"));
+		injector.addComponent(Body.class, Body::new);
 
 		Bluesband band = injector.getComponent(Bluesband.class);
 		assertEquals("LesPaul", band.getLeadGuitar().getModel());
@@ -86,6 +89,7 @@ public class TestLambda extends TestCase {
 		injector.addComponent(Metalband.class, Metalband::new);
 		Guitar guitar = new Guitar("Stratocaster");
 		injector.addComponent(Guitar.class, () -> guitar);
+		injector.addComponent(Body.class, Body::new);
 
 		Metalband band = injector.getComponent(Metalband.class);
 		assertSame(band.getLeadGuitar(), band.getRhythmGuitar());
@@ -98,9 +102,35 @@ public class TestLambda extends TestCase {
 		Injector injector = new Injector();
 
 		injector.addComponent(Guitar.class, Guitar::new);
+		injector.addComponent(Body.class, Body::new);
 
 		Guitar guitar = injector.getComponent(Guitar.class);
 		assertNotNull(guitar);
 		assertNotNull(guitar.isInitialized());
+	}
+
+	/**
+	 * Tests post construction callback.
+	 */
+	public void testMultipleCreation() {
+		Injector injector = new Injector();
+
+		injector.addComponent(Guitar.class, Guitar::new);
+		injector.addComponent(Body.class, Body::new);
+
+		Guitar guitar = injector.getComponent(Guitar.class);
+		assertNotNull(guitar);
+		assertNotNull(guitar.isInitialized());
+
+		Guitar guitar2 = injector.getComponent(Guitar.class);
+		assertNotNull(guitar2);
+		assertNotNull(guitar2.isInitialized());
+
+		Guitar guitar3 = injector.getComponent(Guitar.class);
+		assertNotNull(guitar3);
+		assertNotNull(guitar3.isInitialized());
+
+		assertTrue(guitar != guitar2);
+		assertTrue(guitar2 != guitar3);
 	}
 }

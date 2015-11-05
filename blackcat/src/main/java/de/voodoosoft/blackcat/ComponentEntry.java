@@ -45,6 +45,10 @@ class ComponentEntry {
 		return postConstruct;
 	}
 
+	public Object getLock() {
+		return lock;
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o)
@@ -71,4 +75,5 @@ class ComponentEntry {
 	private String name;
 	private List<Injection> injections;
 	private Method postConstruct;
+	private final Object lock = new Object();
 }

@@ -28,6 +28,12 @@ public class Test extends TestCase {
 				return new Guitar();
 			}
 		});
+		injector.addComponent(Body.class, new Provider<Body>() {
+			@Override
+			public Body provide() {
+				return new Body();
+			}
+		});
 
 		OneManBand band = injector.getComponent(OneManBand.class);
 		assertNotNull(band);
@@ -52,7 +58,6 @@ public class Test extends TestCase {
 				return new Bass();
 			}
 		});
-
 		injector.addComponent(Body.class, new Provider<Body>() {
 			@Override
 			public Body provide() {
@@ -88,6 +93,12 @@ public class Test extends TestCase {
 			@Override
 			public Guitar provide() {
 				return new Guitar("Stratocaster");
+			}
+		});
+		injector.addComponent(Body.class, new Provider<Body>() {
+			@Override
+			public Body provide() {
+				return new Body();
 			}
 		});
 
@@ -127,6 +138,12 @@ public class Test extends TestCase {
 				return new Guitar("Stratocaster");
 			}
 		});
+		injector.addComponent(Body.class, new Provider<Body>() {
+			@Override
+			public Body provide() {
+				return new Body();
+			}
+		});
 
 		Bluesband band = injector.getComponent(Bluesband.class);
 		assertEquals("LesPaul", band.getLeadGuitar().getModel());
@@ -153,6 +170,12 @@ public class Test extends TestCase {
 				return guitar;
 			}
 		});
+		injector.addComponent(Body.class, new Provider<Body>() {
+			@Override
+			public Body provide() {
+				return new Body();
+			}
+		});
 
 		Metalband band = injector.getComponent(Metalband.class);
 		assertSame(band.getLeadGuitar(), band.getRhythmGuitar());
@@ -168,6 +191,12 @@ public class Test extends TestCase {
 			@Override
 			public Guitar provide() {
 				return new Guitar();
+			}
+		});
+		injector.addComponent(Body.class, new Provider<Body>() {
+			@Override
+			public Body provide() {
+				return new Body();
 			}
 		});
 

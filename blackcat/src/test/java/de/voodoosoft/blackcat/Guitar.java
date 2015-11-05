@@ -4,6 +4,9 @@ public class Guitar extends Instrument {
 	private String model;
 	private boolean initialized;
 
+	@Inject
+	private Body body;
+
 	@PostConstruct
 	private void initialize() {
 		initialized = true;

@@ -226,28 +226,13 @@ public class Injector {
 	}
 
 	private <T> void injectDependencies(T component, ComponentEntry componentEntry) {
-		// collect fields to inject
-		List<Injection> injections = componentEntry.getInjections();
-		if (injections == null) {
-			injections = new ArrayList<>();
-			componentEntry.setInjections(injections);
-
-			Class c = component.getClass();
-			while(c != Object.class) {
-				Field[] fields = c.getDeclaredFields();
-				for (int i = 0; i < fields.length; i++) {
-					Field field = fields[i];
-					Inject injectAnnotation = field.getAnnotation(Inject.class);
-					if (injectAnnotation != null) {
-						String value = injectAnnotation.value();
-						if ("".equals(value)) {
-							value = null;
-						}
-						Injection injection = new Injection(c, field.getType(), field.getName(), value);
-						injections.add(injection);
-					}
-				}
-				c = c.getSuperclass();
+		// lazily collect fields to inject
+		List<Injection> injections;
+		synchronized (componentEntry.getLock()) {
+			injections = componentEntry.getInjections();
+			if (injections == null) {
+				injections = collectInjections(component);
+				componentEntry.setInjections(injections);
 			}
 		}
 
@@ -288,6 +273,30 @@ public class Injector {
 				throw new RuntimeException("getComponent", e);
 			}
 		}
+	}
+
+	private <T> List<Injection> collectInjections(T component) {
+		List<Injection> injections = new ArrayList<>();
+
+		Class c = component.getClass();
+		while(c != Object.class) {
+			Field[] fields = c.getDeclaredFields();
+			for (int i = 0; i < fields.length; i++) {
+				Field field = fields[i];
+				Inject injectAnnotation = field.getAnnotation(Inject.class);
+				if (injectAnnotation != null) {
+					String value = injectAnnotation.value();
+					if ("".equals(value)) {
+						value = null;
+					}
+					Injection injection = new Injection(c, field.getType(), field.getName(), value);
+					injections.add(injection);
+				}
+			}
+			c = c.getSuperclass();
+		}
+
+		return injections;
 	}
 
 	private <T> Provider<T> getProvider(Class type, String name) {
