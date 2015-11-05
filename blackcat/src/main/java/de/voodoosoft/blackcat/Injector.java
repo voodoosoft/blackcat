@@ -17,6 +17,7 @@ import java.util.Objects;
  * Component classes must be previously be registered by calling {@link #addComponent} and have a default constructor.
  * <br/>Dependencies are marked with {@link Inject} field annotations.
  * Each dependency type must have its own {@link Provider}.
+ * <br/><code>Injector</code> is thread safe.
  * <p/>Example:
  * <pre>{@code
  * public class Band {
@@ -71,8 +72,8 @@ public class Injector {
 	 * Creates a new injector.
 	 */
 	public Injector() {
-		componentEntries = new HashMap<ComponentEntry, ComponentEntry>();
-		providerEntries = new ArrayList<ProviderEntry>();
+		componentEntries = new HashMap<>();
+		providerEntries = new ArrayList<>();
 	}
 
 	/**
@@ -145,9 +146,7 @@ public class Injector {
 	 */
 	public <T> T getComponent(Class<T> type, String name) {
 		// look up component
-		entryLookup.setType(type);
-		entryLookup.setName(name);
-		ComponentEntry componentEntry = componentEntries.get(entryLookup);
+		ComponentEntry componentEntry = getComponentEntry(type, name);
 		if (componentEntry == null) {
 			throw new RuntimeException("unknown component [" + type + "] named [" + name + "]");
 		}
@@ -197,7 +196,9 @@ public class Injector {
 			}
 			c = c.getSuperclass();
 		}
-		componentEntries.put(componentEntry, componentEntry);
+		synchronized (componentEntries) {
+			componentEntries.put(componentEntry, componentEntry);
+		}
 	}
 
 	/**
@@ -209,24 +210,26 @@ public class Injector {
 	 * @param <T> dependency type
 	 */
 	private <T> void addProvider(Class<T> type, String name, Provider<T> provider) {
-		// look for duplicates
-		int size = providerEntries.size();
-		for (int i = 0; i < size; i++) {
-			ProviderEntry provKey = providerEntries.get(i);
-			if (type.equals(provKey.getType()) && Objects.equals(name, provKey.getName())) {
-				throw new RuntimeException("duplicate provider for type [" + type + "] named [" + name + "]");
+		synchronized (providerEntries) {
+			// look for duplicates
+			int size = providerEntries.size();
+			for (int i = 0; i < size; i++) {
+				ProviderEntry provKey = providerEntries.get(i);
+				if (type.equals(provKey.getType()) && Objects.equals(name, provKey.getName())) {
+					throw new RuntimeException("duplicate provider for type [" + type + "] named [" + name + "]");
+				}
 			}
-		}
 
-		ProviderEntry providerEntry = new ProviderEntry(provider, type, name);
-		providerEntries.add(providerEntry);
+			ProviderEntry providerEntry = new ProviderEntry(provider, type, name);
+			providerEntries.add(providerEntry);
+		}
 	}
 
 	private <T> void injectDependencies(T component, ComponentEntry componentEntry) {
 		// collect fields to inject
 		List<Injection> injections = componentEntry.getInjections();
 		if (injections == null) {
-			injections = new ArrayList<Injection>();
+			injections = new ArrayList<>();
 			componentEntry.setInjections(injections);
 
 			Class c = component.getClass();
@@ -288,45 +291,53 @@ public class Injector {
 	}
 
 	private <T> Provider<T> getProvider(Class type, String name) {
-		int size = providerEntries.size();
-		if (name == null || "".equals(name)) {
-			// 1. look for exact match
-			for (int i = 0; i < size; i++) {
-				ProviderEntry provKey = providerEntries.get(i);
-				if (type.equals(provKey.getType()) && provKey.getName() == null) {
-					return provKey.getProvider();
+		synchronized (providerEntries) {
+			int size = providerEntries.size();
+			if (name == null || "".equals(name)) {
+				// 1. look for exact match
+				for (int i = 0; i < size; i++) {
+					ProviderEntry provKey = providerEntries.get(i);
+					if (provKey.getName() == null && type.equals(provKey.getType())) {
+						return provKey.getProvider();
+					}
+				}
+
+				// 2. look for descendants
+				for (int i = 0; i < size; i++) {
+					ProviderEntry provKey = providerEntries.get(i);
+					if (provKey.getName() == null && type.isAssignableFrom(provKey.getType())) {
+						return provKey.getProvider();
+					}
 				}
 			}
-
-			// 2. look for descendants
-			for (int i = 0; i < size; i++) {
-				ProviderEntry provKey = providerEntries.get(i);
-				if (type.isAssignableFrom(provKey.getType()) && provKey.getName() == null) {
-					return provKey.getProvider();
+			else {
+				for (int i = 0; i < size; i++) {
+					ProviderEntry provKey = providerEntries.get(i);
+					if (type.isAssignableFrom(provKey.getType()) && Objects.equals(name, provKey.getName())) {
+						return provKey.getProvider();
+					}
 				}
 			}
 		}
-		else {
-			for (int i = 0; i < size; i++) {
-				ProviderEntry provKey = providerEntries.get(i);
-				if (type.isAssignableFrom(provKey.getType()) && Objects.equals(name, provKey.getName())) {
-					return provKey.getProvider();
-				}
-			}
-		}
-
 		return null;
 	}
 
 	private ComponentEntry getComponentEntry(Class type, String name) {
+		ComponentEntry entryLookup = threadLocalLookup.get();
+		if (entryLookup == null) {
+			entryLookup = new ComponentEntry();
+			threadLocalLookup.set(entryLookup);
+		}
 		entryLookup.setName(name);
 		entryLookup.setType(type);
-		ComponentEntry componentEntry = componentEntries.get(entryLookup);
 
-		return componentEntry;
+		synchronized (componentEntries) {
+			ComponentEntry componentEntry = componentEntries.get(entryLookup);
+			return componentEntry;
+		}
 	}
 
 	private Map<ComponentEntry,ComponentEntry> componentEntries;
 	private List<ProviderEntry> providerEntries;
-	private final ComponentEntry entryLookup = new ComponentEntry();
+	private ThreadLocal<ComponentEntry> threadLocalLookup = new ThreadLocal<>();
 }
