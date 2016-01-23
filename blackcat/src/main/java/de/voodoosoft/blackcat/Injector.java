@@ -157,7 +157,9 @@ public class Injector {
 			throw new RuntimeException("component [" + type + "] named [" + name + "] needs a provider");
 		}
 		T component = provider.provide();
-		injectDependencies(component, componentEntry);
+		if (component != null) {
+			injectDependencies(component, componentEntry);
+		}
 
 		return component;
 	}
