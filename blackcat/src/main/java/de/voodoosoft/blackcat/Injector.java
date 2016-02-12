@@ -102,6 +102,14 @@ public class Injector {
 		addProvider(type, null, provider);
 	}
 
+	public <T> T addAndGetComponent(Class<T> type, Provider<T> provider) {
+		addComponent(type, (String)null);
+		addProvider(type, null, provider);
+		T component = getComponent(type);
+
+		return component;
+	}
+
 	/**
 	 * Registers a named component.
 	 * <p/>Named componentEntries are mainly used for resolving named dependencies.
@@ -131,7 +139,7 @@ public class Injector {
 	 * @return
 	 */
 	public <T> T getComponent(Class<T> type) {
-		return getComponent(type, null);
+		return getComponent(type, (String)null);
 	}
 
 	/**
@@ -186,7 +194,7 @@ public class Injector {
 		// collect component meta data
 		ComponentEntry componentEntry = new ComponentEntry(type, name);
 		Class c = type;
-		while(c != Object.class && componentEntry.getPostConstruct() == null) {
+		while(c != null && c != Object.class && componentEntry.getPostConstruct() == null) {
 			Method[] methods = c.getDeclaredMethods();
 			for (int i = 0; i < methods.length; i++) {
 				Method method = methods[i];
