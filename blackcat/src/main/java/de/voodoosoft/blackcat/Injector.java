@@ -102,6 +102,13 @@ public class Injector {
 		addProvider(type, null, provider);
 	}
 
+	/**
+	 * Adds the given class to the list of managed classes and returns one created object as well.
+	 *
+	 * @param type component class
+	 * @param provider component provider
+	 * @param <T> component type
+	 */
 	public <T> T addAndGetComponent(Class<T> type, Provider<T> provider) {
 		addComponent(type, (String)null);
 		addProvider(type, null, provider);
