@@ -45,6 +45,22 @@ class ComponentEntry {
 		return postConstruct;
 	}
 
+	public void setSingleton(boolean singleton) {
+		this.singleton = singleton;
+	}
+
+	public boolean isSingleton() {
+		return singleton;
+	}
+
+	public void setSingletonHashCode(int singletonHashcode) {
+		this.singletonHashcode = singletonHashcode;
+	}
+
+	public int getSingletonHashCode() {
+		return singletonHashcode;
+	}
+
 	public Object getLock() {
 		return lock;
 	}
@@ -73,6 +89,8 @@ class ComponentEntry {
 
 	private Class type;
 	private String name;
+	private boolean singleton;
+	private int singletonHashcode;
 	private List<Injection> injections;
 	private Method postConstruct;
 	private final Object lock = new Object();

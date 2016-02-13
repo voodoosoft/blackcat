@@ -98,8 +98,59 @@ public class Injector {
 	 * @param <T> component type
 	 */
 	public <T> void addComponent(Class<T> type, Provider<T> provider) {
-		addComponent(type, (String)null);
+		doAddComponent(type, false, null);
 		addProvider(type, null, provider);
+	}
+
+	/**
+	 * Adds the given class to the list of managed classes that will get injected dependencies.
+	 *
+	 * @see #getComponent(Class)
+	 * @see #get(Class)
+	 *
+	 * @param type component class
+	 * @param provider component provider
+	 * @param singleton singleton flag
+	 * @param <T> component type
+	 */
+	public <T> void addComponent(Class<T> type, Provider<T> provider, boolean singleton) {
+		doAddComponent(type, singleton, null);
+		addProvider(type, null, provider);
+	}
+
+	/**
+	 * Registers a named component.
+	 * <p/>Named componentEntries are mainly used for resolving named dependencies.
+	 *
+	 * @see #getComponent(Class)
+	 * @see #get(Class)
+	 * @see Inject
+	 * @param <T> component type
+	 * @param type component class
+	 * @param name dependency name
+	 * @param provider component provider
+	 * @param singleton singleton flag
+	 */
+	public <T> void addComponent(Class<T> type, String name, Provider<T> provider, boolean singleton) {
+		doAddComponent(type, singleton, name);
+		addProvider(type, name, provider);
+	}
+
+	/**
+	 * Registers a named component.
+	 * <p/>Named componentEntries are mainly used for resolving named dependencies.
+	 *
+	 * @see #getComponent(Class)
+	 * @see #get(Class)
+	 * @see Inject
+	 * @param <T> component type
+	 * @param type component class
+	 * @param name dependency name
+	 * @param provider component provider
+	 */
+	public <T> void addComponent(Class<T> type, String name, Provider<T> provider) {
+		doAddComponent(type, false, name);
+		addProvider(type, name, provider);
 	}
 
 	/**
@@ -110,29 +161,11 @@ public class Injector {
 	 * @param <T> component type
 	 */
 	public <T> T addAndGetComponent(Class<T> type, Provider<T> provider) {
-		addComponent(type, (String)null);
+		doAddComponent(type, false, null);
 		addProvider(type, null, provider);
 		T component = getComponent(type);
 
 		return component;
-	}
-
-	/**
-	 * Registers a named component.
-	 * <p/>Named componentEntries are mainly used for resolving named dependencies.
-	 *
-	 * @see #getComponent(Class)
-	 * @see #get(Class)
-	 * @see Inject
-	 *
-	 * @param type component class
-	 * @param name dependency name
-	 * @param provider component provider
-	 * @param <T> component type
-	 */
-	public <T> void addComponent(Class<T> type, String name, Provider<T> provider) {
-		addComponent(type, name);
-		addProvider(type, name, provider);
 	}
 
 	/**
@@ -146,7 +179,7 @@ public class Injector {
 	 * @return
 	 */
 	public <T> T getComponent(Class<T> type) {
-		return getComponent(type, (String)null);
+		return getComponent(type, null);
 	}
 
 	/**
@@ -174,6 +207,14 @@ public class Injector {
 		T component = provider.provide();
 		if (component != null) {
 			injectDependencies(component, componentEntry);
+
+			if (componentEntry.isSingleton()) {
+				int singletonHashCode = componentEntry.getSingletonHashCode();
+				if (singletonHashCode != 0 && component.hashCode() != singletonHashCode) {
+					throw new RuntimeException("providing multiple objects of singleton component [" + type + "] named [" + name + "]");
+				}
+				componentEntry.setSingletonHashCode(component.hashCode());
+			}
 		}
 
 		return component;
@@ -192,7 +233,7 @@ public class Injector {
 		return Holder.injector.getComponent(type);
 	}
 
-	private void addComponent(Class type, String name) {
+	private void doAddComponent(Class type, boolean singleton, String name) {
 		// prevent duplicates
 		if (getComponentEntry(type, name) != null) {
 			throw new RuntimeException("duplicate component [" + type + "] named [" + name + "]");
@@ -200,6 +241,7 @@ public class Injector {
 
 		// collect component meta data
 		ComponentEntry componentEntry = new ComponentEntry(type, name);
+		componentEntry.setSingleton(singleton);
 		Class c = type;
 		while(c != null && c != Object.class && componentEntry.getPostConstruct() == null) {
 			Method[] methods = c.getDeclaredMethods();
