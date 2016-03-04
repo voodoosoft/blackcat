@@ -87,6 +87,7 @@ public class Injector {
 		return Holder.injector;
 	}
 
+
 	/**
 	 * Adds the given class to the list of managed classes that will get injected dependencies.
 	 *
