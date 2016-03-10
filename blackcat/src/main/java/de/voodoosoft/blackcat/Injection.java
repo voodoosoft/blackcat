@@ -1,19 +1,18 @@
 
 package de.voodoosoft.blackcat;
 
+import java.lang.reflect.Field;
+
+/**
+ * Internal class for holding injection points.
+ */
 class Injection {
-	public Injection(Class holderType, Class type, String field, String name) {
-		this.holderType = holderType;
-		this.type = type;
+	public Injection(Field field, String name) {
 		this.field = field;
 		this.name = name;
 	}
 
-	public Class getType() {
-		return type;
-	}
-
-	public String getField() {
+	public Field getField() {
 		return field;
 	}
 
@@ -21,12 +20,6 @@ class Injection {
 		return name;
 	}
 
-	public Class getHolderType() {
-		return holderType;
-	}
-
-	private Class holderType;
-	private Class type;
-	private String field;
+	private Field field;
 	private String name;
 }

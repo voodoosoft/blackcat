@@ -9,7 +9,8 @@ import java.lang.annotation.Target;
 
 
 /**
- * Marks a field as dependency injection target.
+ * Defines an optional component initialization method.
+ * PostConstruct is invoked after passing the component constructor and having all dependencies injected.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

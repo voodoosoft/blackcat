@@ -3,33 +3,34 @@ package de.voodoosoft.blackcat;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 
 
 /**
  * Supplies components and injects defined dependencies.
  * <p/>
- * Component classes must be previously be registered by calling {@link #addComponent} and have a default constructor.
+ * Component classes must be previously be registered by calling {@link #defineComponent} and have a default constructor.
  * <br/>Dependencies are marked with {@link Inject} field annotations.
- * Each dependency type must have its own {@link Provider}.
- * <br/><code>Injector</code> is thread safe.
+ * <br/>Dependency injections can be defined recursively.  
+ * <br/>Components should not be defined from multiple threads at the same time, but may be requested concurrently.
+ * <br/>The {@link PostConstruct} annotation can be used for additional initialization after objects have been created.
+ *
  * <p/>Example:
- * <pre>{@code
+ * <pre>
+ * {@code
  * public class Band {
- *    @literal@Inject
+ *    {@literal @}Inject
  *    private Bass bass;
  *
  *    public Band() {
  *    }
  * }
  *
- * Injector.getInjector().addComponent(Bass.class, new Provider<Bass>() {
- *    @literal@Override
+ * Injector.getInjector().defineComponent(Bass.class, new Provider<Bass>() {
+ *    {@literal @}Override
  *    public Bass provide() {
  *       return new Bass();
  *    }
@@ -41,9 +42,10 @@ import java.util.Objects;
  * Naturally, providers do not need to be defined with anonymous classes.
  * <br/>Dependencies can additionally be identified by assigning a name:
  * <br/>
- * <pre>{@code
+ * <pre>
+ * {@code
  * public class Band {
- *    @literal@Inject("Precision")
+ *    {@literal @}Inject("Precision")
  *    private Bass bass;
  *
  *    public Band() {
@@ -51,15 +53,16 @@ import java.util.Objects;
  * }
  *
  * public class BassProvider implements Provider<Bass> {
- *    @literal@Override
+ *    {@literal @}Override
  *    public Bass provide() {
  *       return new Bass();
  *    }
  * }
  *
- * Injector.getInjector().addComponent(Bass.class, "Precision", new BassProvider());
+ * Injector.getInjector().defineComponent(Bass.class, "Precision", new BassProvider());
  * Bass bass = Injector.getInjector().get(Bass.class);
  * }
+ *
  * @see Provider
  * @see Inject
  */
@@ -72,8 +75,8 @@ public class Injector {
 	 * Creates a new injector.
 	 */
 	public Injector() {
-		componentEntries = new HashMap<>();
-		providerEntries = new ArrayList<>();
+		components = new HashMap<>();
+		componentsByType = new HashMap<>();
 	}
 
 	/**
@@ -87,71 +90,32 @@ public class Injector {
 		return Holder.injector;
 	}
 
-
 	/**
 	 * Adds the given class to the list of managed classes that will get injected dependencies.
 	 *
 	 * @see #getComponent(Class)
-	 * @see #get(Class)
 	 *
 	 * @param type component class
 	 * @param provider component provider
 	 * @param <T> component type
 	 */
-	public <T> void addComponent(Class<T> type, Provider<T> provider) {
-		doAddComponent(type, false, null);
-		addProvider(type, null, provider);
-	}
-
-	/**
-	 * Adds the given class to the list of managed classes that will get injected dependencies.
-	 *
-	 * @see #getComponent(Class)
-	 * @see #get(Class)
-	 *
-	 * @param type component class
-	 * @param provider component provider
-	 * @param singleton singleton flag
-	 * @param <T> component type
-	 */
-	public <T> void addComponent(Class<T> type, Provider<T> provider, boolean singleton) {
-		doAddComponent(type, singleton, null);
-		addProvider(type, null, provider);
+	public <T> void defineComponent(Class<T> type, Provider<T> provider) {
+		doDefineComponent(type, (String)null, provider);
 	}
 
 	/**
 	 * Registers a named component.
 	 * <p/>Named componentEntries are mainly used for resolving named dependencies.
 	 *
-	 * @see #getComponent(Class)
-	 * @see #get(Class)
-	 * @see Inject
-	 * @param <T> component type
-	 * @param type component class
-	 * @param name dependency name
-	 * @param provider component provider
-	 * @param singleton singleton flag
-	 */
-	public <T> void addComponent(Class<T> type, String name, Provider<T> provider, boolean singleton) {
-		doAddComponent(type, singleton, name);
-		addProvider(type, name, provider);
-	}
-
-	/**
-	 * Registers a named component.
-	 * <p/>Named componentEntries are mainly used for resolving named dependencies.
+	 * @see #getComponent(Class, String)
 	 *
-	 * @see #getComponent(Class)
-	 * @see #get(Class)
-	 * @see Inject
-	 * @param <T> component type
 	 * @param type component class
 	 * @param name dependency name
 	 * @param provider component provider
+	 * @param <T> component type
 	 */
-	public <T> void addComponent(Class<T> type, String name, Provider<T> provider) {
-		doAddComponent(type, false, name);
-		addProvider(type, name, provider);
+	public <T> void defineComponent(Class<T> type, String name, Provider<T> provider) {
+		doDefineComponent(type, name, provider);
 	}
 
 	/**
@@ -161,9 +125,8 @@ public class Injector {
 	 * @param provider component provider
 	 * @param <T> component type
 	 */
-	public <T> T addAndGetComponent(Class<T> type, Provider<T> provider) {
-		doAddComponent(type, false, null);
-		addProvider(type, null, provider);
+	public <T> T defineAndGetComponent(Class<T> type, Provider<T> provider) {
+		doDefineComponent(type, (String)null, provider);
 		T component = getComponent(type);
 
 		return component;
@@ -172,7 +135,6 @@ public class Injector {
 	/**
 	 * Returns an object for the given type.
 	 *
-	 * @see #get(Class)
 	 * @see #getComponent(Class, String)
 	 *
 	 * @param type
@@ -180,13 +142,12 @@ public class Injector {
 	 * @return
 	 */
 	public <T> T getComponent(Class<T> type) {
-		return getComponent(type, null);
+		return getComponent(type, (String)null);
 	}
 
 	/**
 	 * Returns an object for the given type and name.
 	 *
-	 * @see #get(Class)
 	 * @see #getComponent(Class)
 	 *
 	 * @param type component class
@@ -201,50 +162,27 @@ public class Injector {
 		}
 
 		// build component with dependencies
-		Provider<T> provider = getProvider(type, name);
-		if (provider == null) {
-			throw new RuntimeException("component [" + type + "] named [" + name + "] needs a provider");
-		}
+		Provider<T> provider = (Provider<T>)componentEntry.getProvider();
 		T component = provider.provide();
 		if (component != null) {
 			injectDependencies(component, componentEntry);
-
-			if (componentEntry.isSingleton()) {
-				int singletonHashCode = componentEntry.getSingletonHashCode();
-				if (singletonHashCode != 0 && component.hashCode() != singletonHashCode) {
-					throw new RuntimeException("providing multiple objects of singleton component [" + type + "] named [" + name + "]");
-				}
-				componentEntry.setSingletonHashCode(component.hashCode());
-			}
 		}
 
 		return component;
 	}
 
-	/**
-	 * Convenience method for the global injector that returns an object of the given class with injected dependencies.
-	 *
-	 * @see #getComponent(Class)
-	 *
-	 * @param type component class
-	 * @param <T> component type
-	 * @return
-	 */
-	public static <T> T get(Class<T> type) {
-		return Holder.injector.getComponent(type);
-	}
-
-	private void doAddComponent(Class type, boolean singleton, String name) {
+	private void doDefineComponent(Class<?> type, String name, Provider provider) {
 		// prevent duplicates
 		if (getComponentEntry(type, name) != null) {
 			throw new RuntimeException("duplicate component [" + type + "] named [" + name + "]");
 		}
 
 		// collect component meta data
-		ComponentEntry componentEntry = new ComponentEntry(type, name);
-		componentEntry.setSingleton(singleton);
-		Class c = type;
-		while(c != null && c != Object.class && componentEntry.getPostConstruct() == null) {
+		ComponentEntry componentEntry = new ComponentEntry(type, name, provider);
+		List<Injection> injections = componentEntry.getInjections();
+		Class<?> c = type;
+		while(c != null && c != Object.class) {
+			// collect PostConstruct methods
 			Method[] methods = c.getDeclaredMethods();
 			for (int i = 0; i < methods.length; i++) {
 				Method method = methods[i];
@@ -254,67 +192,53 @@ public class Injector {
 					break;
 				}
 			}
-			c = c.getSuperclass();
-		}
-		synchronized (componentEntries) {
-			componentEntries.put(componentEntry, componentEntry);
-		}
-	}
 
-	/**
-	 * Registers a dependency provider that supplies dependencies by class and name.
-	 *
-	 * @param type dependency class to provide
-	 * @param name dependency name
-	 * @param provider dependency provider
-	 * @param <T> dependency type
-	 */
-	private <T> void addProvider(Class<T> type, String name, Provider<T> provider) {
-		synchronized (providerEntries) {
-			// look for duplicates
-			int size = providerEntries.size();
-			for (int i = 0; i < size; i++) {
-				ProviderEntry provKey = providerEntries.get(i);
-				if (type.equals(provKey.getType()) && Objects.equals(name, provKey.getName())) {
-					throw new RuntimeException("duplicate provider for type [" + type + "] named [" + name + "]");
+			// collect Inject fields
+			Field[] fields = c.getDeclaredFields();
+			for (int i = 0; i < fields.length; i++) {
+				Field field = fields[i];
+				Inject injectAnnotation = field.getAnnotation(Inject.class);
+				if (injectAnnotation != null) {
+					String injectionName = injectAnnotation.value();
+					if ("".equals(injectionName)) {
+						injectionName = null;
+					}
+					Injection injection = new Injection(field, injectionName);
+					field.setAccessible(true);
+					injections.add(injection);
 				}
 			}
 
-			ProviderEntry providerEntry = new ProviderEntry(provider, type, name);
-			providerEntries.add(providerEntry);
+			c = c.getSuperclass();
+		}
+
+		components.put(componentEntry, componentEntry);
+		if (name == null) {
+			componentsByType.put(type, componentEntry);
 		}
 	}
 
 	private <T> void injectDependencies(T component, ComponentEntry componentEntry) {
-		// lazily collect fields to inject
-		List<Injection> injections;
-		synchronized (componentEntry.getLock()) {
-			injections = componentEntry.getInjections();
-			if (injections == null) {
-				injections = collectInjections(component);
-				componentEntry.setInjections(injections);
-			}
-		}
-
 		// inject field values
+		List<Injection> injections = componentEntry.getInjections();
 		int size = injections.size();
 		for (int i = 0; i < size; i++) {
 			Injection injection = injections.get(i);
-			Provider provider = getProvider(injection.getType(), injection.getName());
-			if (provider == null) {
-				throw new RuntimeException("no provider for injection on [" + injection.getField() + "] typed [" + injection.getType() + "] named [" + injection.getName() + "] of component [" + componentEntry.getType() + "]");
+			Class<?> injectionType = injection.getField().getType();
+			ComponentEntry injectionEntry = getComponentEntry(injectionType, injection.getName());
+			if (injectionEntry == null) {
+				throw new RuntimeException("no component of type [" + injectionType + "] defined for injection into [" + componentEntry.getType() + "]");
 			}
+			Provider<?> provider = injectionEntry.getProvider();
 
 			// recursively create injections
 			try {
 				Object injectionValue = provider.provide();
-				Field field = injection.getHolderType().getDeclaredField(injection.getField());
-				ComponentEntry nestedComponent = getComponentEntry(injection.getType(), injection.getName());
+				Field field = injection.getField();
+				ComponentEntry nestedComponent = getComponentEntry(injectionType, injection.getName());
 				if (nestedComponent != null) {
 					injectDependencies(injectionValue, nestedComponent);
 				}
-
-				field.setAccessible(true);
 				field.set(component, injectionValue);
 			}
 			catch (Exception e) {
@@ -335,78 +259,36 @@ public class Injector {
 		}
 	}
 
-	private <T> List<Injection> collectInjections(T component) {
-		List<Injection> injections = new ArrayList<>();
-
-		Class c = component.getClass();
-		while(c != Object.class) {
-			Field[] fields = c.getDeclaredFields();
-			for (int i = 0; i < fields.length; i++) {
-				Field field = fields[i];
-				Inject injectAnnotation = field.getAnnotation(Inject.class);
-				if (injectAnnotation != null) {
-					String value = injectAnnotation.value();
-					if ("".equals(value)) {
-						value = null;
-					}
-					Injection injection = new Injection(c, field.getType(), field.getName(), value);
-					injections.add(injection);
-				}
+	private ComponentEntry getComponentEntry(Class<?> type, String name) {
+		// find named component
+		if (name != null) {
+			ComponentEntry entryLookup = componentLookup.get();
+			if (entryLookup == null) {
+				entryLookup = new ComponentEntry();
+				componentLookup.set(entryLookup);
 			}
-			c = c.getSuperclass();
+			entryLookup.setName(name);
+			entryLookup.setType(type);
+			return components.get(entryLookup);
 		}
 
-		return injections;
-	}
+		// find unnamed component
+		ComponentEntry componentEntry = componentsByType.get(type);
+		if (componentEntry != null) {
+			return componentEntry;
+		}
 
-	private <T> Provider<T> getProvider(Class type, String name) {
-		synchronized (providerEntries) {
-			int size = providerEntries.size();
-			if (name == null || "".equals(name)) {
-				// 1. look for exact match
-				for (int i = 0; i < size; i++) {
-					ProviderEntry provKey = providerEntries.get(i);
-					if (provKey.getName() == null && type.equals(provKey.getType())) {
-						return provKey.getProvider();
-					}
-				}
-
-				// 2. look for descendants
-				for (int i = 0; i < size; i++) {
-					ProviderEntry provKey = providerEntries.get(i);
-					if (provKey.getName() == null && type.isAssignableFrom(provKey.getType())) {
-						return provKey.getProvider();
-					}
-				}
-			}
-			else {
-				for (int i = 0; i < size; i++) {
-					ProviderEntry provKey = providerEntries.get(i);
-					if (type.isAssignableFrom(provKey.getType()) && Objects.equals(name, provKey.getName())) {
-						return provKey.getProvider();
-					}
-				}
+		// find ancestor definition
+		for (ComponentEntry entry : components.values()) {
+			if (entry.getName() == null && type.isAssignableFrom(entry.getType())) {
+				return entry;
 			}
 		}
+
 		return null;
 	}
 
-	private ComponentEntry getComponentEntry(Class type, String name) {
-		ComponentEntry entryLookup = threadLocalLookup.get();
-		if (entryLookup == null) {
-			entryLookup = new ComponentEntry();
-			threadLocalLookup.set(entryLookup);
-		}
-		entryLookup.setName(name);
-		entryLookup.setType(type);
-
-		synchronized (componentEntries) {
-			ComponentEntry componentEntry = componentEntries.get(entryLookup);
-			return componentEntry;
-		}
-	}
-
-	private Map<ComponentEntry,ComponentEntry> componentEntries;
-	private List<ProviderEntry> providerEntries;
-	private ThreadLocal<ComponentEntry> threadLocalLookup = new ThreadLocal<>();
+	private Map<ComponentEntry, ComponentEntry> components;
+	private Map<Class<?>, ComponentEntry> componentsByType;
+	private ThreadLocal<ComponentEntry> componentLookup = new ThreadLocal<>();
 }

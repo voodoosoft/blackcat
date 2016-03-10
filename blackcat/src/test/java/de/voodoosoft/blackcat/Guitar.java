@@ -1,5 +1,6 @@
 package de.voodoosoft.blackcat;
 
+
 public class Guitar extends Instrument {
 	private String model;
 	private boolean initialized;
@@ -21,6 +22,10 @@ public class Guitar extends Instrument {
 
 	public String getModel() {
 		return model;
+	}
+
+	public Body getBody() {
+		return body;
 	}
 
 	public boolean isInitialized() {

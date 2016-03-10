@@ -16,19 +16,25 @@ public class Test extends TestCase {
 	public void testSimpleInjection() {
 		Injector injector = new Injector();
 
-		injector.addComponent(OneManBand.class, new Provider<OneManBand>() {
+		injector.defineComponent(OneManBand.class, new Provider<OneManBand>() {
 			@Override
 			public OneManBand provide() {
 				return new OneManBand();
 			}
 		});
-		injector.addComponent(Guitar.class, new Provider<Guitar>() {
+		injector.defineComponent(Guitar.class, new Provider<Guitar>() {
 			@Override
 			public Guitar provide() {
 				return new Guitar();
 			}
 		});
-		injector.addComponent(Body.class, new Provider<Body>() {
+		injector.defineComponent(Artist.class, new Provider<Artist>() {
+			@Override
+			public Artist provide() {
+				return new Artist();
+			}
+		});
+		injector.defineComponent(Body.class, new Provider<Body>() {
 			@Override
 			public Body provide() {
 				return new Body();
@@ -46,26 +52,26 @@ public class Test extends TestCase {
 	public void testNestedInjection() {
 		Injector injector = new Injector();
 
-		injector.addComponent(Band.class, new Provider<Band>() {
+		injector.defineComponent(StringBand.class, new Provider<StringBand>() {
 			@Override
-			public Band provide() {
-				return new Band();
+			public StringBand provide() {
+				return new StringBand();
 			}
 		});
-		injector.addComponent(Bass.class, new Provider<Bass>() {
+		injector.defineComponent(Bass.class, new Provider<Bass>() {
 			@Override
 			public Bass provide() {
 				return new Bass();
 			}
 		});
-		injector.addComponent(Body.class, new Provider<Body>() {
+		injector.defineComponent(Body.class, new Provider<Body>() {
 			@Override
 			public Body provide() {
 				return new Body();
 			}
 		});
 
-		Band band = injector.getComponent(Band.class);
+		StringBand band = injector.getComponent(StringBand.class);
 		assertNotNull(band.getBass());
 		assertNotNull(band.getBass().getBody());
 		assertNull(band.getGuitar());
@@ -77,25 +83,31 @@ public class Test extends TestCase {
 	public void testNamedInjection() {
 		Injector injector = new Injector();
 
-		injector.addComponent(Jazzband.class, new Provider<Jazzband>() {
+		injector.defineComponent(Jazzband.class, new Provider<Jazzband>() {
 			@Override
 			public Jazzband provide() {
 				return new Jazzband();
 			}
 		});
-		injector.addComponent(Guitar.class, "LesPaul", new Provider<Guitar>() {
+		injector.defineComponent(Guitar.class, "LesPaul", new Provider<Guitar>() {
 			@Override
 			public Guitar provide() {
 				return new Guitar("LesPaul");
 			}
 		});
-		injector.addComponent(Guitar.class, "Stratocaster", new Provider<Guitar>() {
+		injector.defineComponent(Guitar.class, "Stratocaster", new Provider<Guitar>() {
 			@Override
 			public Guitar provide() {
 				return new Guitar("Stratocaster");
 			}
 		});
-		injector.addComponent(Body.class, new Provider<Body>() {
+		injector.defineComponent(Artist.class, new Provider<Artist>() {
+			@Override
+			public Artist provide() {
+				return new Artist();
+			}
+		});
+		injector.defineComponent(Body.class, new Provider<Body>() {
 			@Override
 			public Body provide() {
 				return new Body();
@@ -120,25 +132,31 @@ public class Test extends TestCase {
 	public void testTypedAndNamedInjection() {
 		Injector injector = new Injector();
 
-		injector.addComponent(Bluesband.class, new Provider<Bluesband>() {
+		injector.defineComponent(Bluesband.class, new Provider<Bluesband>() {
 			@Override
 			public Bluesband provide() {
 				return new Bluesband();
 			}
 		});
-		injector.addComponent(Guitar.class, "LesPaul", new Provider<Guitar>() {
+		injector.defineComponent(Guitar.class, "LesPaul", new Provider<Guitar>() {
 			@Override
 			public Guitar provide() {
 				return new Guitar("LesPaul");
 			}
 		});
-		injector.addComponent(Guitar.class, new Provider<Guitar>() {
+		injector.defineComponent(Guitar.class, new Provider<Guitar>() {
 			@Override
 			public Guitar provide() {
 				return new Guitar("Stratocaster");
 			}
 		});
-		injector.addComponent(Body.class, new Provider<Body>() {
+		injector.defineComponent(Artist.class, new Provider<Artist>() {
+			@Override
+			public Artist provide() {
+				return new Artist();
+			}
+		});
+		injector.defineComponent(Body.class, new Provider<Body>() {
 			@Override
 			public Body provide() {
 				return new Body();
@@ -158,19 +176,25 @@ public class Test extends TestCase {
 		final Guitar guitar = new Guitar("Stratocaster");
 		Injector injector = new Injector();
 
-		injector.addComponent(Metalband.class, new Provider<Metalband>() {
+		injector.defineComponent(Metalband.class, new Provider<Metalband>() {
 			@Override
 			public Metalband provide() {
 				return new Metalband();
 			}
 		});
-		injector.addComponent(Guitar.class, new Provider<Guitar>() {
+		injector.defineComponent(Guitar.class, new Provider<Guitar>() {
 			@Override
 			public Guitar provide() {
 				return guitar;
 			}
 		});
-		injector.addComponent(Body.class, new Provider<Body>() {
+		injector.defineComponent(Artist.class, new Provider<Artist>() {
+			@Override
+			public Artist provide() {
+				return new Artist();
+			}
+		});
+		injector.defineComponent(Body.class, new Provider<Body>() {
 			@Override
 			public Body provide() {
 				return new Body();
@@ -187,13 +211,19 @@ public class Test extends TestCase {
 	public void testPostConstruction() {
 		Injector injector = new Injector();
 
-		injector.addComponent(Guitar.class, new Provider<Guitar>() {
+		injector.defineComponent(Guitar.class, new Provider<Guitar>() {
 			@Override
 			public Guitar provide() {
 				return new Guitar();
 			}
 		});
-		injector.addComponent(Body.class, new Provider<Body>() {
+		injector.defineComponent(Artist.class, new Provider<Artist>() {
+			@Override
+			public Artist provide() {
+				return new Artist();
+			}
+		});
+		injector.defineComponent(Body.class, new Provider<Body>() {
 			@Override
 			public Body provide() {
 				return new Body();
@@ -204,4 +234,86 @@ public class Test extends TestCase {
 		assertNotNull(guitar);
 		assertNotNull(guitar.isInitialized());
 	}
+	
+	public void testSingleton() {
+		Injector injector = new Injector();
+		injector.defineComponent(Bass.class, new SingletonProvider<>(
+				new Provider<Bass>() {
+					@Override
+					public Bass provide() {
+						return new Bass();
+					}
+				}
+		));
+		injector.defineComponent(Body.class, new Provider<Body>() {
+			@Override
+			public Body provide() {
+				return new Body();
+			}
+		});
+		
+		Bass bass1 = injector.getComponent(Bass.class);
+		Bass bass2 = injector.getComponent(Bass.class);
+		assertTrue(bass1 == bass2);
+	}
+	
+	public void testDistinctness() {
+		Injector injector = new Injector();
+		injector.defineComponent(Bass.class, new Provider<Bass>() {
+				@Override
+				public Bass provide() {
+					return new Bass();
+				}
+			}
+		);
+		injector.defineComponent(Body.class, new Provider<Body>() {
+			@Override
+			public Body provide() {
+				return new Body();
+			}
+		});
+		
+		Bass bass1 = injector.getComponent(Bass.class);
+		Bass bass2 = injector.getComponent(Bass.class);
+		assertTrue(bass1 != bass2);
+	}
+	
+	public void testThreadLocal() throws InterruptedException {
+		Injector injector = new Injector();
+		injector.defineComponent(Bass.class, new ThreadLocalProvider<Bass>(() -> new Bass()));
+		injector.defineComponent(Body.class, () -> new Body());
+		
+		Thread t1 = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				bass1a = injector.getComponent(Bass.class);
+				bass1b = injector.getComponent(Bass.class);
+			}
+		});
+
+		Thread t2 = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				bass2a = injector.getComponent(Bass.class);
+				bass2b = injector.getComponent(Bass.class);
+			}
+		});
+		
+		t1.start();
+		t2.start();
+		t1.join();
+		t2.join();
+		
+		assertTrue(bass1a != bass2a);
+		assertTrue(bass1a != bass2b);
+		assertTrue(bass1b != bass2b);
+		assertTrue(bass1b != bass2a);
+		assertTrue(bass1a == bass1b);
+		assertTrue(bass2a == bass2b);
+	}
+	
+	private Bass bass1a;
+	private Bass bass1b;
+	private Bass bass2a;
+	private Bass bass2b;
 }

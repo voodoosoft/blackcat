@@ -1,6 +1,7 @@
 package de.voodoosoft.blackcat;
 
-public class Jazzband {
+
+public class Jazzband implements Band {
 	private Bass bass;
 
 	@Inject("Stratocaster")

@@ -1,5 +1,6 @@
 package de.voodoosoft.blackcat;
 
+
 public class Bluesband {
 	private Bass bass;
 

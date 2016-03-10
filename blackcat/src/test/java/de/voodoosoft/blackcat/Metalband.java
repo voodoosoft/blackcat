@@ -1,6 +1,7 @@
 package de.voodoosoft.blackcat;
 
-public class Metalband {
+
+public class Metalband implements Band {
 	@Inject
 	private Guitar rhythmGuitar;
 

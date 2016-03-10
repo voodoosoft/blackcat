@@ -2,22 +2,33 @@
 package de.voodoosoft.blackcat;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Internal {@link Injector} class for holding defined components. 
+ */
 class ComponentEntry {
 	public ComponentEntry() {
+		injections = new ArrayList<>();
 	}
 
-	public ComponentEntry(Class type, String name) {
+	public ComponentEntry(Class<?> type, String name, Provider provider) {
 		this.type = type;
 		this.name = name;
+		this.provider = provider;
+		injections = new ArrayList<>();
 	}
 
-	public void setType(Class type) {
+	public Provider<?> getProvider() {
+		return provider;
+	}
+
+	public void setType(Class<?> type) {
 		this.type = type;
 	}
 
-	public Class getType() {
+	public Class<?> getType() {
 		return type;
 	}
 
@@ -43,22 +54,6 @@ class ComponentEntry {
 
 	public Method getPostConstruct() {
 		return postConstruct;
-	}
-
-	public void setSingleton(boolean singleton) {
-		this.singleton = singleton;
-	}
-
-	public boolean isSingleton() {
-		return singleton;
-	}
-
-	public void setSingletonHashCode(int singletonHashcode) {
-		this.singletonHashcode = singletonHashcode;
-	}
-
-	public int getSingletonHashCode() {
-		return singletonHashcode;
 	}
 
 	public Object getLock() {
@@ -87,11 +82,10 @@ class ComponentEntry {
 		return result;
 	}
 
-	private Class type;
+	private Class<?> type;
 	private String name;
-	private boolean singleton;
-	private int singletonHashcode;
 	private List<Injection> injections;
 	private Method postConstruct;
 	private final Object lock = new Object();
+	private Provider<?> provider;
 }
