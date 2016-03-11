@@ -41,9 +41,9 @@ public class Bass {
 Injector injector = Injector.getInjector();
 
 // declare DI components
-injector.addComponent(Band.class, Band::new);
-injector.addComponent(Guitar.class, Guitar::new);
-injector.addComponent(Bass.class, Guitar::new);
+injector.defineComponent(Band.class, Band::new);
+injector.defineComponent(Guitar.class, Guitar::new);
+injector.defineComponent(Bass.class, Guitar::new);
 
 // get the band together
 Band band = injector.getComponent(Band.class);
