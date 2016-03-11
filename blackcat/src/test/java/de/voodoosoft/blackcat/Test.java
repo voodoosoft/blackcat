@@ -16,22 +16,10 @@ public class Test extends TestCase {
 	public void testSimpleInjection() {
 		Injector injector = new Injector();
 
-		injector.defineComponent(OneManBand.class, new Provider<OneManBand>() {
+		injector.defineComponent(Bass.class, new Provider<Bass>() {
 			@Override
-			public OneManBand provide() {
-				return new OneManBand();
-			}
-		});
-		injector.defineComponent(Guitar.class, new Provider<Guitar>() {
-			@Override
-			public Guitar provide() {
-				return new Guitar();
-			}
-		});
-		injector.defineComponent(Artist.class, new Provider<Artist>() {
-			@Override
-			public Artist provide() {
-				return new Artist();
+			public Bass provide() {
+				return new Bass();
 			}
 		});
 		injector.defineComponent(Body.class, new Provider<Body>() {
@@ -41,9 +29,9 @@ public class Test extends TestCase {
 			}
 		});
 
-		OneManBand band = injector.getComponent(OneManBand.class);
-		assertNotNull(band);
-		assertNotNull(band.getGuitar());
+		Bass bass = injector.getComponent(Bass.class);
+		assertNotNull(bass);
+		assertNotNull(bass.getBody());
 	}
 
 	/**

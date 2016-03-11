@@ -1,6 +1,6 @@
 package de.voodoosoft.blackcat;
 
-public class Drums {
+public class Drums extends Instrument {
 	public Drums() {
 	}
 }

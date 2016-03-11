@@ -20,6 +20,15 @@ class Injection {
 		return name;
 	}
 
+	public void setComponentDef(ComponentDef componentDef) {
+		this.componentDef = componentDef;
+	}
+	
+	public ComponentDef getComponentDef() {
+		return componentDef;
+	}
+	
 	private Field field;
 	private String name;
+	private ComponentDef componentDef;
 }

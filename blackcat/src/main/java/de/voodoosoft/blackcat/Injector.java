@@ -3,6 +3,7 @@ package de.voodoosoft.blackcat;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,8 +17,9 @@ import java.util.Map;
  * <br/>Dependencies are marked with {@link Inject} field annotations.
  * <br/>Dependency injections can be defined recursively.  
  * <br/>Components should not be defined from multiple threads at the same time, but may be requested concurrently.
+ * <br/>All components should have been defined before starting to request components. 
  * <br/>The {@link PostConstruct} annotation can be used for additional initialization after objects have been created.
- *
+ * 
  * <p/>Example:
  * <pre>
  * {@code
@@ -75,8 +77,9 @@ public class Injector {
 	 * Creates a new injector.
 	 */
 	public Injector() {
-		components = new HashMap<>();
-		componentsByType = new HashMap<>();
+		unnamedComponentsByType = new HashMap<>();
+		componentsByName = new HashMap<>();
+		unnamedComponents = new ArrayList<>();
 	}
 
 	/**
@@ -92,7 +95,10 @@ public class Injector {
 
 	/**
 	 * Adds the given class to the list of managed classes that will get injected dependencies.
-	 *
+	 * <br/>Only class members of the given type and its ancestors are analyzed as potential injection points
+	 * which means that usually concrete classes have to be registered as components and not interfaces.
+	 * <br/>However, for injections points interfaces can be utilized as well.
+	 * 
 	 * @see #getComponent(Class)
 	 *
 	 * @param type component class
@@ -106,6 +112,9 @@ public class Injector {
 	/**
 	 * Registers a named component.
 	 * <p/>Named componentEntries are mainly used for resolving named dependencies.
+	 * <br/>Only class members of the given type and its ancestors are analyzed as potential injection points
+	 * which means that usually concrete classes have to be registered as components and not interfaces.
+	 * <br/>However, for injections points interfaces can be utilized as well.
 	 *
 	 * @see #getComponent(Class, String)
 	 *
@@ -154,9 +163,10 @@ public class Injector {
 	 * @param <T> component type
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	public <T> T getComponent(Class<T> type, String name) {
 		// look up component
-		ComponentEntry componentEntry = getComponentEntry(type, name);
+		ComponentDef componentEntry = getComponentEntry(type, name);
 		if (componentEntry == null) {
 			throw new RuntimeException("unknown component [" + type + "] named [" + name + "]");
 		}
@@ -171,14 +181,14 @@ public class Injector {
 		return component;
 	}
 
-	private void doDefineComponent(Class<?> type, String name, Provider provider) {
+	private void doDefineComponent(Class<?> type, String name, Provider<?> provider) {
 		// prevent duplicates
 		if (getComponentEntry(type, name) != null) {
 			throw new RuntimeException("duplicate component [" + type + "] named [" + name + "]");
 		}
 
 		// collect component meta data
-		ComponentEntry componentEntry = new ComponentEntry(type, name, provider);
+		ComponentDef componentEntry = new ComponentDef(type, name, provider);
 		List<Injection> injections = componentEntry.getInjections();
 		Class<?> c = type;
 		while(c != null && c != Object.class) {
@@ -212,33 +222,39 @@ public class Injector {
 			c = c.getSuperclass();
 		}
 
-		components.put(componentEntry, componentEntry);
 		if (name == null) {
-			componentsByType.put(type, componentEntry);
+			unnamedComponents.add(componentEntry);
+			unnamedComponentsByType.put(type, componentEntry);
+		} else {
+			componentsByName.put(name, componentEntry);
 		}
 	}
 
-	private <T> void injectDependencies(T component, ComponentEntry componentEntry) {
+	private <T> void injectDependencies(T component, ComponentDef componentEntry) {
 		// inject field values
 		List<Injection> injections = componentEntry.getInjections();
 		int size = injections.size();
 		for (int i = 0; i < size; i++) {
 			Injection injection = injections.get(i);
-			Class<?> injectionType = injection.getField().getType();
-			ComponentEntry injectionEntry = getComponentEntry(injectionType, injection.getName());
-			if (injectionEntry == null) {
-				throw new RuntimeException("no component of type [" + injectionType + "] defined for injection into [" + componentEntry.getType() + "]");
-			}
-			Provider<?> provider = injectionEntry.getProvider();
-
-			// recursively create injections
-			try {
-				Object injectionValue = provider.provide();
-				Field field = injection.getField();
-				ComponentEntry nestedComponent = getComponentEntry(injectionType, injection.getName());
-				if (nestedComponent != null) {
-					injectDependencies(injectionValue, nestedComponent);
+			Field field = injection.getField();
+			Class<?> injectionType = field.getType();
+			
+			ComponentDef injectionDef = injection.getComponentDef();
+			if (injectionDef == null) {
+				injectionDef = getComponentEntry(injectionType, injection.getName());
+				if (injectionDef == null) {
+					throw new RuntimeException("no component of type [" + injectionType + "] defined for injection into [" + componentEntry.getType() + "]");
 				}
+				// cache injection definition
+				injection.setComponentDef(injectionDef);
+			}
+			
+			Provider<?> provider = injectionDef.getProvider();
+			Object injectionValue = provider.provide();
+
+			// recursively set injections
+			try {
+				injectDependencies(injectionValue, injectionDef);
 				field.set(component, injectionValue);
 			}
 			catch (Exception e) {
@@ -259,36 +275,37 @@ public class Injector {
 		}
 	}
 
-	private ComponentEntry getComponentEntry(Class<?> type, String name) {
-		// find named component
+	private ComponentDef getComponentEntry(Class<?> type, String name) {
+		// look for named component
 		if (name != null) {
-			ComponentEntry entryLookup = componentLookup.get();
-			if (entryLookup == null) {
-				entryLookup = new ComponentEntry();
-				componentLookup.set(entryLookup);
-			}
-			entryLookup.setName(name);
-			entryLookup.setType(type);
-			return components.get(entryLookup);
+			ComponentDef compDef = componentsByName.get(name);
+			return compDef;
+		}
+				
+		// look for unnamed component
+		ComponentDef compDef = unnamedComponentsByType.get(type);
+		if (compDef != null) {
+			return compDef;
 		}
 
-		// find unnamed component
-		ComponentEntry componentEntry = componentsByType.get(type);
-		if (componentEntry != null) {
-			return componentEntry;
-		}
-
-		// find ancestor definition
-		for (ComponentEntry entry : components.values()) {
-			if (entry.getName() == null && type.isAssignableFrom(entry.getType())) {
-				return entry;
+		// look for matching (unnamed) ancestor component definitions
+		int matchCount = 0;
+		int size = unnamedComponents.size();
+		for (int i=0; i < size; i++) {
+			ComponentDef tempDef = unnamedComponents.get(i);
+			if (type.isAssignableFrom(tempDef.getType())) {
+				compDef = tempDef;
+				matchCount++;
 			}
 		}
+		if (matchCount > 1) {
+			throw new AmbigousComponentException("multiple components for injection [" + type + "] [" + name + "]");
+		}
 
-		return null;
+		return compDef;
 	}
 
-	private Map<ComponentEntry, ComponentEntry> components;
-	private Map<Class<?>, ComponentEntry> componentsByType;
-	private ThreadLocal<ComponentEntry> componentLookup = new ThreadLocal<>();
+	private List<ComponentDef> unnamedComponents;
+	private Map<Class<?>, ComponentDef> unnamedComponentsByType;
+	private Map<String, ComponentDef> componentsByName;
 }

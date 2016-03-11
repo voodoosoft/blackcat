@@ -16,14 +16,12 @@ public class TestLambda extends TestCase {
 	public void testSimpleInjection() {
 		Injector injector = new Injector();
 
-		injector.defineComponent(OneManBand.class, OneManBand::new);
-		injector.defineComponent(Guitar.class, Guitar::new);
+		injector.defineComponent(Bass.class, Bass::new);
 		injector.defineComponent(Body.class, Body::new);
-		injector.defineComponent(Artist.class, Artist::new);
 
-		OneManBand band = injector.getComponent(OneManBand.class);
-		assertNotNull(band);
-		assertNotNull(band.getGuitar());
+		Bass bass = injector.getComponent(Bass.class);
+		assertNotNull(bass);
+		assertNotNull(bass.getBody());
 	}
 
 	/**
@@ -88,6 +86,7 @@ public class TestLambda extends TestCase {
 	 */
 	public void testDoubleInjection() {
 		Injector injector = new Injector();
+		
 		injector.defineComponent(Metalband.class, Metalband::new);
 		Guitar guitar = new Guitar("Stratocaster");
 		injector.defineComponent(Guitar.class, () -> guitar);
@@ -189,14 +188,39 @@ public class TestLambda extends TestCase {
 
 	public void testAncestor() {
 		Injector injector = new Injector();
-		injector.defineComponent(Band.class, Metalband::new); // register interface
+		
+		// component with interface injection of type "Band"
+		injector.defineComponent(Concert.class, Concert::new);
+		
+		// concrete class "Metalband" to serve for all injections of type "Band"
+		injector.defineComponent(Metalband.class, Metalband::new);
+		
 		injector.defineComponent(Guitar.class, Guitar::new);
 		injector.defineComponent(Body.class, Body::new);
-		injector.defineComponent(Concert.class, Concert::new);
-
+		injector.defineComponent(Artist.class, Artist::new);
+		
 		Concert concert = injector.getComponent(Concert.class);
 		assertNotNull(concert);
-		assertNotNull(concert.getBand());
+		Metalband band = (Metalband) concert.getBand();
+		assertNotNull(band);
+		assertNotNull(band.getLeadGuitar());
+		assertNotNull(band.getRhythmGuitar());
+	}
+	
+	public void testAmbigousInjection() {
+		Injector injector = new Injector();
+		
+		injector.defineComponent(BrokenBand.class, BrokenBand::new);
+		injector.defineComponent(Guitar.class, Guitar::new);
+		injector.defineComponent(Bass.class, Bass::new);
+		
+		// instrument cannot be injected because it is ambigous
+		BrokenBand band = null;
+		try {
+			band = injector.getComponent(BrokenBand.class);
+		} catch (AmbigousComponentException ex) {
+		}
+		assertNull(band);
 	}
 
 	private Bass bass1a;
