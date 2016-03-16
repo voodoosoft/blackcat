@@ -12,7 +12,7 @@ It can do two things:
 * annotation based field injections
 * invoke post construction callbacks
 
-To get the gist of this library, check out the unit tests.
+To get the gist of this library, check out the unit tests.  
 A first simple performance test shows that getting objects from Blackcat is faster than using Guice, Feather, PicoContainter and Spring (feel free to prove me wrong...).
 
 Simple example for building a band consisting of guitar and bass:
