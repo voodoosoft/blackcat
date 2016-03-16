@@ -13,9 +13,9 @@ It can do two things:
 * invoke post construction callbacks
 
 To get the gist of this library, check out the unit tests.  
-A first simple performance test shows that getting objects from Blackcat is faster than using Guice, Feather, PicoContainter and Spring (feel free to prove me wrong...).
+A first simple performance test shows that getting object hierarchies from Blackcat is faster than using Guice, Feather, PicoContainter and Spring (feel free to prove me wrong...).
 
-Simple example for building a band consisting of guitar and bass:
+Simple example for building a band consisting of guitar and bass:  
 ```
 public class Band {
 	@Inject
