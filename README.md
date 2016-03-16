@@ -49,11 +49,11 @@ injector.defineComponent(Bass.class, Guitar::new);
 Band band = injector.getComponent(Band.class);
 ```
 
-Basic component definition:
+###Basic component definition:###
 ```
    defineComponent(Class<T> type, Provider<T> provider) 
 ```
-A provider is as simple as this:
+###A provider is as simple as this:###
 ```
 public interface Provider<T> {
 	T provide();
@@ -61,5 +61,14 @@ public interface Provider<T> {
 ```
 It is up to you to create, handle or store component instances.
 However, there are two convenient providers you can use:
-1. SingletonProvider for assuring there will only be one object created for a class.
-2. ThreadLocalProvider always returns the same object per calling thread.
+* SingletonProvider for assuring there will only be one object created for a class.
+* ThreadLocalProvider always returns the same object per calling thread.
+
+In case you need to do some post-constructor initialization, you can annotate a method with PostConstruct.
+This is typically necessary for init code that requires all injections to be available.
+```
+   @PostConstruct
+   private void initializeMe() {
+      // all injections have been set here
+   }
+```	
