@@ -72,3 +72,17 @@ This is typically necessary for init code that requires all injections to be ava
       // all injections have been set here
    }
 ```	
+
+To have multiple different components of the same class, components can be **named**.
+```
+public class Band {
+   @Inject("stratocaster")
+   private Guitar strat;
+
+   @Inject("telecaster")
+   private Guitar tele;
+}
+
+injector.defineComponent(Guitar.class, "stratocaster", Guitar::new);
+injector.defineComponent(Guitar.class, "telecaster", Guitar::new);
+```
