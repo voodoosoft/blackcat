@@ -346,7 +346,7 @@ public class Injector {
 			return compDef;
 		}
 
-		// look for matching (unnamed) ancestor component definitions
+		// look for matching (unnamed) descendant component definitions
 		int matchCount = 0;
 		int size = unnamedComponents.size();
 		for (int i = 0; i < size; i++) {
