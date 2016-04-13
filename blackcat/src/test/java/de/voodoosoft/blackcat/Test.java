@@ -1,5 +1,6 @@
 package de.voodoosoft.blackcat;
 
+
 import junit.framework.TestCase;
 
 
@@ -225,14 +226,13 @@ public class Test extends TestCase {
 	
 	public void testSingleton() {
 		Injector injector = new Injector();
-		injector.defineComponent(Bass.class, new SingletonProvider<>(
-				new Provider<Bass>() {
+		injector.defineComponent(Bass.class, true, new Provider<Bass>() {
 					@Override
 					public Bass provide() {
 						return new Bass();
 					}
 				}
-		));
+		);
 		injector.defineComponent(Body.class, new Provider<Body>() {
 			@Override
 			public Body provide() {
@@ -264,40 +264,6 @@ public class Test extends TestCase {
 		Bass bass1 = injector.getComponent(Bass.class);
 		Bass bass2 = injector.getComponent(Bass.class);
 		assertTrue(bass1 != bass2);
-	}
-	
-	public void testThreadLocal() throws InterruptedException {
-		Injector injector = new Injector();
-		injector.defineComponent(Bass.class, new ThreadLocalProvider<Bass>(() -> new Bass()));
-		injector.defineComponent(Body.class, () -> new Body());
-		
-		Thread t1 = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				bass1a = injector.getComponent(Bass.class);
-				bass1b = injector.getComponent(Bass.class);
-			}
-		});
-
-		Thread t2 = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				bass2a = injector.getComponent(Bass.class);
-				bass2b = injector.getComponent(Bass.class);
-			}
-		});
-		
-		t1.start();
-		t2.start();
-		t1.join();
-		t2.join();
-		
-		assertTrue(bass1a != bass2a);
-		assertTrue(bass1a != bass2b);
-		assertTrue(bass1b != bass2b);
-		assertTrue(bass1b != bass2a);
-		assertTrue(bass1a == bass1b);
-		assertTrue(bass2a == bass2b);
 	}
 	
 	private Bass bass1a;

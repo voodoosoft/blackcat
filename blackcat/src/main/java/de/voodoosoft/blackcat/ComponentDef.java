@@ -40,9 +40,27 @@ class ComponentDef {
 		return postConstruct;
 	}
 
+	public void setSingleton(boolean singleton) {
+		this.singleton = singleton;
+	}
+
+	public boolean isSingleton() {
+		return singleton;
+	}
+
+	public Object getSingletonRef() {
+		return singletonRef;
+	}
+
+	public void setSingletonRef(Object singletonRef) {
+		this.singletonRef = singletonRef;
+	}
+
 	private Class<?> type;
 	private String name;
 	private List<Injection> injections;
 	private Method postConstruct;
 	private Provider<?> provider;
+	private boolean singleton;
+	private Object singletonRef;
 }

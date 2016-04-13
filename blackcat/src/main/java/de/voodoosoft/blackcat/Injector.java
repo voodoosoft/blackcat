@@ -19,7 +19,7 @@ import java.util.Map;
  * <br/>Components should not be defined from multiple threads at the same time, but may be requested concurrently.
  * <br/>All components should have been defined before starting to request components. 
  * <br/>The {@link PostConstruct} annotation can be used for additional initialization after objects have been created.
- * 
+ *
  * <p/>Example:
  * <pre>
  * {@code
@@ -98,15 +98,20 @@ public class Injector {
 	 * <br/>Only class members of the given type and its ancestors are analyzed as potential injection points
 	 * which means that usually concrete classes have to be registered as components and not interfaces.
 	 * <br/>However, for injections points interfaces can be utilized as well.
-	 * 
+	 *
 	 * @see #getComponent(Class)
 	 *
 	 * @param type component class
+	 * @param singleton true if only one object of the given class will ever created
 	 * @param provider component provider
 	 * @param <T> component type
 	 */
+	public <T> void defineComponent(Class<T> type, boolean singleton, Provider<T> provider) {
+		doDefineComponent(type, null, provider, singleton);
+	}
+
 	public <T> void defineComponent(Class<T> type, Provider<T> provider) {
-		doDefineComponent(type, (String)null, provider);
+		doDefineComponent(type, null, provider, false);
 	}
 
 	/**
@@ -120,22 +125,35 @@ public class Injector {
 	 *
 	 * @param type component class
 	 * @param name dependency name
+  	 * @param singleton true if only one object of the given class will ever created
 	 * @param provider component provider
 	 * @param <T> component type
 	 */
+	public <T> void defineComponent(Class<T> type, String name, boolean singleton, Provider<T> provider) {
+		doDefineComponent(type, name, provider, singleton);
+	}
+
 	public <T> void defineComponent(Class<T> type, String name, Provider<T> provider) {
-		doDefineComponent(type, name, provider);
+		doDefineComponent(type, name, provider, false);
 	}
 
 	/**
 	 * Adds the given class to the list of managed classes and returns one created object as well.
 	 *
 	 * @param type component class
+	 * @param singleton true if only one object of the given class will ever created
 	 * @param provider component provider
 	 * @param <T> component type
 	 */
+	public <T> T defineAndGetComponent(Class<T> type, boolean singleton, Provider<T> provider) {
+		doDefineComponent(type, null, provider, singleton);
+		T component = getComponent(type);
+
+		return component;
+	}
+
 	public <T> T defineAndGetComponent(Class<T> type, Provider<T> provider) {
-		doDefineComponent(type, (String)null, provider);
+		doDefineComponent(type, null, provider, false);
 		T component = getComponent(type);
 
 		return component;
@@ -151,7 +169,7 @@ public class Injector {
 	 * @return
 	 */
 	public <T> T getComponent(Class<T> type) {
-		return getComponent(type, (String)null);
+		return getComponent(type, null);
 	}
 
 	/**
@@ -166,30 +184,52 @@ public class Injector {
 	@SuppressWarnings("unchecked")
 	public <T> T getComponent(Class<T> type, String name) {
 		// look up component
-		ComponentDef componentEntry = getComponentEntry(type, name);
-		if (componentEntry == null) {
+		ComponentDef componentDef = getComponentDef(type, name);
+		if (componentDef == null) {
 			throw new RuntimeException("unknown component [" + type + "] named [" + name + "]");
 		}
 
 		// build component with dependencies
-		Provider<T> provider = (Provider<T>)componentEntry.getProvider();
-		T component = provider.provide();
+		// optionally return existing singleton
+		if (componentDef.isSingleton() && componentDef.getSingletonRef() != null) {
+			return (T)componentDef.getSingletonRef();
+		}
+
+		// create component
+		Provider<?> provider = componentDef.getProvider();
+		T component = (T)provider.provide();
 		if (component != null) {
-			injectDependencies(component, componentEntry);
+			if (componentDef.isSingleton()) {
+				componentDef.setSingletonRef(component);
+			}
+
+			injectDependencies(component, componentDef);
+
+			Method postConstruct = componentDef.getPostConstruct();
+			if (postConstruct != null) {
+				try {
+					postConstruct.setAccessible(true);
+					postConstruct.invoke(component);
+				}
+				catch (Exception e) {
+					throw new RuntimeException("getComponent", e);
+				}
+			}
 		}
 
 		return component;
 	}
 
-	private void doDefineComponent(Class<?> type, String name, Provider<?> provider) {
+	private void doDefineComponent(Class<?> type, String name, Provider<?> provider, boolean singleton) {
 		// prevent duplicates
-		if (getComponentEntry(type, name) != null) {
+		if (getComponentDef(type, name) != null) {
 			throw new RuntimeException("duplicate component [" + type + "] named [" + name + "]");
 		}
 
 		// collect component meta data
-		ComponentDef componentEntry = new ComponentDef(type, name, provider);
-		List<Injection> injections = componentEntry.getInjections();
+		ComponentDef componentDef = new ComponentDef(type, name, provider);
+		componentDef.setSingleton(singleton);
+		List<Injection> injections = componentDef.getInjections();
 		Class<?> c = type;
 		while(c != null && c != Object.class) {
 			// collect PostConstruct methods
@@ -198,7 +238,7 @@ public class Injector {
 				Method method = methods[i];
 				PostConstruct postConstruct = method.getAnnotation(PostConstruct.class);
 				if (postConstruct != null) {
-					componentEntry.setPostConstruct(method);
+					componentDef.setPostConstruct(method);
 					break;
 				}
 			}
@@ -223,65 +263,83 @@ public class Injector {
 		}
 
 		if (name == null) {
-			unnamedComponents.add(componentEntry);
-			unnamedComponentsByType.put(type, componentEntry);
-		} else {
-			componentsByName.put(name, componentEntry);
+			unnamedComponents.add(componentDef);
+			unnamedComponentsByType.put(type, componentDef);
+		}
+		else {
+			componentsByName.put(name, componentDef);
 		}
 	}
 
-	private <T> void injectDependencies(T component, ComponentDef componentEntry) {
+	private <T> void injectDependencies(T component, ComponentDef componentDef) {
 		// inject field values
-		List<Injection> injections = componentEntry.getInjections();
+		List<Injection> injections = componentDef.getInjections();
 		int size = injections.size();
 		for (int i = 0; i < size; i++) {
 			Injection injection = injections.get(i);
 			Field field = injection.getField();
 			Class<?> injectionType = field.getType();
-			
+
+			// get definition for dependency
 			ComponentDef injectionDef = injection.getComponentDef();
 			if (injectionDef == null) {
-				injectionDef = getComponentEntry(injectionType, injection.getName());
+				injectionDef = getComponentDef(injectionType, injection.getName());
 				if (injectionDef == null) {
-					throw new RuntimeException("no component of type [" + injectionType + "] defined for injection into [" + componentEntry.getType() + "]");
+					throw new RuntimeException("no component of type [" + injectionType + "] defined for injection into [" + componentDef.getType() + "]");
 				}
-				// cache injection definition
 				injection.setComponentDef(injectionDef);
 			}
-			
-			Provider<?> provider = injectionDef.getProvider();
-			Object injectionValue = provider.provide();
 
-			// recursively set injections
+			// optionally return existing singleton
+			T injectionValue = null;
+			boolean created = false;
+			if (injectionDef.isSingleton() && injectionDef.getSingletonRef() != null) {
+				injectionValue = (T)injectionDef.getSingletonRef();
+			}
+			// create new component
+			if (injectionValue == null) {
+				Provider<?> provider = injectionDef.getProvider();
+				injectionValue = (T)provider.provide();
+				if (injectionDef.isSingleton()) {
+					injectionDef.setSingletonRef(injectionValue);
+				}
+				created = true;
+			}
+
+			// recursively create dependencies for new components
 			try {
-				injectDependencies(injectionValue, injectionDef);
+				if (created) {
+					injectDependencies(injectionValue, injectionDef);
+				}
 				field.set(component, injectionValue);
 			}
 			catch (Exception e) {
 				throw new RuntimeException("injectDependencies", e);
 			}
-		}
 
-		// optionally invoke post construction
-		Method postConstruct = componentEntry.getPostConstruct();
-		if (componentEntry != null && postConstruct != null) {
-			try {
-				postConstruct.setAccessible(true);
-				postConstruct.invoke(component);
-			}
-			catch (Exception e) {
-				throw new RuntimeException("getComponent", e);
+			// optionally invoke post construction
+			if (created) {
+				Method postConstruct = injectionDef.getPostConstruct();
+				if (postConstruct != null) {
+					try {
+						postConstruct.setAccessible(true);
+						postConstruct.invoke(injectionValue);
+					}
+					catch (Exception e) {
+						throw new RuntimeException("createRootComponent", e);
+					}
+				}
 			}
 		}
 	}
 
-	private ComponentDef getComponentEntry(Class<?> type, String name) {
+	private ComponentDef getComponentDef(Class<?> type, String name) {
 		// look for named component
 		if (name != null) {
 			ComponentDef compDef = componentsByName.get(name);
 			return compDef;
 		}
-				
+
 		// look for unnamed component
 		ComponentDef compDef = unnamedComponentsByType.get(type);
 		if (compDef != null) {
@@ -291,7 +349,7 @@ public class Injector {
 		// look for matching (unnamed) ancestor component definitions
 		int matchCount = 0;
 		int size = unnamedComponents.size();
-		for (int i=0; i < size; i++) {
+		for (int i = 0; i < size; i++) {
 			ComponentDef tempDef = unnamedComponents.get(i);
 			if (type.isAssignableFrom(tempDef.getType())) {
 				compDef = tempDef;

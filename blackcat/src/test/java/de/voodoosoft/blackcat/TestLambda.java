@@ -140,7 +140,7 @@ public class TestLambda extends TestCase {
 	
 	public void testSingleton() {
 		Injector injector = new Injector();
-		injector.defineComponent(Bass.class, new SingletonProvider<>(() -> new Bass()));
+		injector.defineComponent(Bass.class, true, (() -> new Bass()));
 		injector.defineComponent(Body.class, () -> new Body());
 		
 		Bass bass1 = injector.getComponent(Bass.class);
@@ -156,34 +156,6 @@ public class TestLambda extends TestCase {
 		Bass bass1 = injector.getComponent(Bass.class);
 		Bass bass2 = injector.getComponent(Bass.class);
 		assertTrue(bass1 != bass2);
-	}
-	
-	public void testThreadLocal() throws InterruptedException {
-		Injector injector = new Injector();
-		injector.defineComponent(Bass.class, new ThreadLocalProvider<>(() -> new Bass()));
-		injector.defineComponent(Body.class, () -> new Body());
-		
-		Thread t1 = new Thread(() -> {
-			bass1a = injector.getComponent(Bass.class);
-			bass1b = injector.getComponent(Bass.class);
-		});
-
-		Thread t2 = new Thread(() -> {
-			bass2a = injector.getComponent(Bass.class);
-			bass2b = injector.getComponent(Bass.class);
-		});
-		
-		t1.start();
-		t2.start();
-		t1.join();
-		t2.join();
-		
-		assertTrue(bass1a != bass2a);
-		assertTrue(bass1a != bass2b);
-		assertTrue(bass1b != bass2b);
-		assertTrue(bass1b != bass2a);
-		assertTrue(bass1a == bass1b);
-		assertTrue(bass2a == bass2b);
 	}
 
 	public void testAncestor() {
@@ -212,7 +184,9 @@ public class TestLambda extends TestCase {
 		
 		injector.defineComponent(BrokenBand.class, BrokenBand::new);
 		injector.defineComponent(Guitar.class, Guitar::new);
-		injector.defineComponent(Bass.class, Bass::new);
+		injector.defineComponent(Body.class, Body::new);
+		injector.defineComponent(Artist.class, Artist::new);
+		injector.defineComponent(Drums.class, Drums::new);
 		
 		// instrument cannot be injected because it is ambigous
 		BrokenBand band = null;
