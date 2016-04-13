@@ -61,9 +61,6 @@ public interface Provider<T> {
 }
 ```
 It is up to you to create, handle or store component instances.
-However, there are two convenient providers you can use:
-* SingletonProvider for assuring there will only be one object created for a class.
-* ThreadLocalProvider always returns the same object per calling thread.
 
 In case you need to do some post-constructor initialization, you can annotate a method with **PostConstruct**.
 This is typically necessary for init code that requires all injections to be available.
