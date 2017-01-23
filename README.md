@@ -1,7 +1,7 @@
 # Blackcat
 ##Lightweight dependency injection library for Java
 
-Blackcat was developed while working on the game [Biodrone Battle](http://www.biodronebattle.com).
+Blackcat was developed while working on the game [Lethal Running](http://www.lethalrunning.com/).
 Requirements were as follows:
 * no external dependencies
 * no component scanning
