@@ -63,4 +63,6 @@ class ComponentDef {
 	private Provider<?> provider;
 	private boolean singleton;
 	private Object singletonRef;
+
+	final Object singletonCreationLock = new Object();
 }
