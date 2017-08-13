@@ -16,7 +16,6 @@ import java.util.Map;
  * Component classes must be previously be registered by calling {@link #defineComponent} and have a default constructor.
  * <br/>Dependencies are marked with {@link Inject} field annotations.
  * <br/>Dependency injections can be defined recursively.  
- * <br/>Components should not be defined from multiple threads at the same time, but may be requested concurrently.
  * <br/>All components should have been defined before starting to request components. 
  * <br/>The {@link PostConstruct} annotation can be used for additional initialization after objects have been created.
  *
