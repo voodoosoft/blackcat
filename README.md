@@ -15,7 +15,7 @@ It can do two things:
 To get the gist of this library, check out the unit tests.  
 A first simple performance test shows that getting object hierarchies from Blackcat is faster than using Guice, Feather, PicoContainter and Spring (feel free to prove me wrong...).
 
-TODO: multithreadable singleton creation
+Please note that cyclic dependencies are not resolved by design.
 
 Simple example for building a band consisting of guitar and bass:  
 ```
