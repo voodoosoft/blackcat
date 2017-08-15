@@ -64,5 +64,5 @@ class ComponentDef {
 	private boolean singleton;
 	private Object singletonRef;
 
-	final Object singletonCreationLock = new Object();
+	final Object singletonLock = new Object();
 }
