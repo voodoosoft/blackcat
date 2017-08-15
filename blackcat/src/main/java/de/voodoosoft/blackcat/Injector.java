@@ -294,37 +294,17 @@ public class Injector {
 						injectionValue = (T)provider.provide();
 						injectionDef.setSingletonRef(injectionValue);
 						injectDependencies(injectionValue, injectionDef);
-
-						try {
-							field.set(component, injectionValue);
-						}
-						catch (Exception e) {
-							throw new RuntimeException("injectDependencies", e);
-						}
-
+						setField(component, field, injectionValue);
 						postConstruct(injectionDef, injectionValue);
 					} else {
-						try {
-							field.set(component, injectionValue);
-						}
-						catch (Exception e) {
-							throw new RuntimeException("injectDependencies", e);
-						}
+						setField(component, field, injectionValue);
 					}
 				}
 			} else {
 				Provider<?> provider = injectionDef.getProvider();
 				T injectionValue = (T)provider.provide();
 				injectDependencies(injectionValue, injectionDef);
-
-				try {
-					field.set(component, injectionValue);
-				}
-				catch (Exception e) {
-					throw new RuntimeException("injectDependencies", e);
-				}
-
-				// optionally invoke post construction
+				setField(component, field, injectionValue);
 				postConstruct(injectionDef, injectionValue);
 			}
 		}
@@ -370,6 +350,15 @@ public class Injector {
 			catch (Exception e) {
 				throw new RuntimeException("postConstruct", e);
 			}
+		}
+	}
+
+	private <T> void setField(T component, Field field, T injectionValue) {
+		try {
+			field.set(component, injectionValue);
+		}
+		catch (Exception e) {
+			throw new RuntimeException("injectDependencies", e);
 		}
 	}
 
