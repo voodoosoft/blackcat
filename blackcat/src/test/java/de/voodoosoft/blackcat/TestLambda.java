@@ -197,8 +197,29 @@ public class TestLambda extends TestCase {
 		assertNull(band);
 	}
 
-	private Bass bass1a;
-	private Bass bass1b;
-	private Bass bass2a;
-	private Bass bass2b;
+	public void testInheritedComponents() {
+		Injector injector = new Injector();
+
+		injector.defineComponent(ElectricGuitar.class, ElectricGuitar::new);
+		injector.defineComponent(Guitar.class, "Dreadnought", () -> new Guitar("Dreadnought"));
+		injector.defineComponent(Guitar.class, "LesPaul", () -> new Guitar("LesPaul"));
+		injector.defineComponent(ElectricGuitar.class, "Stratocaster", () -> new ElectricGuitar("Stratocaster"));
+		injector.defineComponent(Guitar.class, Guitar::new);
+		injector.defineComponent(GuitarCollection.class, GuitarCollection::new);
+		injector.defineComponent(Body.class, Body::new);
+		injector.defineComponent(Artist.class, Artist::new);
+
+		GuitarCollection collection = injector.getComponent(GuitarCollection.class);
+		assertNotNull(collection.getGuitar1());
+		assertTrue(collection.getGuitar1() instanceof Guitar);
+		assertNotNull(collection.getGuitar2());
+		assertTrue(collection.getGuitar2() instanceof ElectricGuitar);
+		assertNotNull(collection.getGuitar3());
+		assertTrue(collection.getGuitar3() instanceof ElectricGuitar);
+		assertTrue(collection.getGuitar3().getModel().equals("Stratocaster"));
+		assertNotNull(collection.getGuitar4());
+		assertTrue(collection.getGuitar4() instanceof Guitar);
+		assertTrue(collection.getGuitar4().getModel().equals("Dreadnought"));
+
+	}
 }

@@ -217,8 +217,11 @@ public class Injector {
 
 	private void doDefineComponent(Class<?> type, String name, Provider<?> provider, boolean singleton) {
 		// prevent duplicates
-		if (getComponentDef(type, name) != null) {
+		if ((name != null && componentsByName.containsKey(name))) {
 			throw new RuntimeException("duplicate component [" + type + "] named [" + name + "]");
+		}
+		if (name == null && unnamedComponentsByType.containsKey(type)) {
+			throw new RuntimeException("duplicate component [" + type + "]");
 		}
 
 		// collect component meta data
