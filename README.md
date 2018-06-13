@@ -1,7 +1,7 @@
 # Blackcat
 ## Lightweight dependency injection library for Java
 
-Blackcat was developed while working on the game [Lethal Running](http://www.lethalrunning.com/).
+Blackcat was developed while working on a 2D top-down game.
 Requirements were as follows:
 * no external dependencies
 * no component scanning
@@ -13,8 +13,6 @@ It can do two things:
 * invoke post construction callbacks
 
 To get the gist of this library, check out the unit tests.  
-A first simple performance test shows that getting object hierarchies from Blackcat is faster than using Guice, Feather, PicoContainter and Spring (feel free to prove me wrong...).
-
 Please note that cyclic dependencies are not resolved by design.
 
 Simple example for building a band consisting of guitar and bass:  
