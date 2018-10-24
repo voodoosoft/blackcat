@@ -93,6 +93,12 @@ public class Injector {
 		return Holder.injector;
 	}
 
+	public void clear() {
+		unnamedComponentsByType.clear();
+		componentsByName.clear();
+		unnamedComponents.clear();
+	}
+
 	/**
 	 * Adds the given class to the list of managed classes that will get injected dependencies.
 	 * <br/>Only class members of the given type and its ancestors are analyzed as potential injection points
