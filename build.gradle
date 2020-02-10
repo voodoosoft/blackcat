@@ -1,7 +1,7 @@
 apply plugin: 'java'
 
 group = 'de.voodoosoft.blackcat'
-version = '1.0.2'
+version = '1.0.3'
 sourceCompatibility = '1.8'
 targetCompatibility = '1.8'
 
@@ -14,7 +14,6 @@ dependencies {
 }
 
 jar {
-    archiveName = rootProject.name + ".jar"
     manifest {
         def date = new Date()
         attributes 'Implementation-Version': version,
